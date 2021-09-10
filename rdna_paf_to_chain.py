@@ -136,8 +136,8 @@ def rdna_paf_to_chain(args):
         chr_qname = rdna_map[qname]
         qstart = int(p[QSTART]) + rdna_offsets[qname]
         qend = int(p[QEND]) + rdna_offsets[qname]
-        print((f'chain\t{p[NRES]}\t{p[TNAME]}\t{p[TLEN]}\t+\t{p[TSTART]}\t{p[TEND]}\t'
-               f'{chr_qname}\t{rdna_chrlen[chr_qname]}\t{p[STRAND]}\t{qstart}\t{qend}\t'
+        print((f'chain {p[NRES]} {p[TNAME]} {p[TLEN]} + {p[TSTART]} {p[TEND]} '
+               f'{chr_qname} {rdna_chrlen[chr_qname]} {p[STRAND]} {qstart} {qend} '
                f'{args.start_chain_idx+idx_p}'), file=f_out)
 
         cg = paf_retrieve_cigar(p)
@@ -153,11 +153,11 @@ def rdna_paf_to_chain(args):
                 match = cg_lens[i_cg]
             elif op == 'I':
                 assert match is not None
-                print(f'{match}\t0\t{cg_lens[i_cg]}', file=f_out)
+                print(f'{match} 0 {cg_lens[i_cg]}', file=f_out)
                 match = None
             elif op == 'D':
                 assert match is not None
-                print(f'{match}\t{cg_lens[i_cg]}\t0', file=f_out)
+                print(f'{match} {cg_lens[i_cg]} 0', file=f_out)
                 match = None
             else:
                 print('error: unexpected cigar op', op, file=sys.stderr)
