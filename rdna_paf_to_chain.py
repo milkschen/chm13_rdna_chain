@@ -18,32 +18,6 @@ NRES = 9
 ALN = 10
 MAPQ = 11
 
-# original naming system
-# rdna_map = {'rdna13': 'chr13', 'rdna14': 'chr14', 'rdna15': 'chr15',
-#             'rdna21': 'chr21', 'rdna22': 'chr22'}
-
-# 1.0->1.1
-rdna_map = {'chr13:5650893-5650893': 'chr13',
-            'chr13:10020808-10061802': 'chr13',
-            'chr14:1981995-2100015': 'chr14',
-            'chr14:2875496-2918014': 'chr14',
-            'chr15:2388406-2506438': 'chr15',
-            'chr15:5292607-5333560': 'chr15',
-            'chr21:2988589-3108297': 'chr21',
-            'chr21:6349728-6389624': 'chr21',
-            'chr22:4674015-4793755': 'chr22',
-            'chr22:5749418-5788909': 'chr22',
-# 1.0 -> 1.0
-            'chr13:5650823-5774302': 'chr13',
-            'chr13:9341786-9389035': 'chr13',
-            'chr14:1981517-2103527': 'chr14',
-            'chr14:2811590-2860329': 'chr14',
-            'chr15:2388410-2510165': 'chr15',
-            'chr15:4701196-4748438': 'chr15',
-            'chr21:2988590-3112035': 'chr21',
-            'chr21:5608487-5652611': 'chr21',
-            'chr22:4674054-4797629': 'chr22',
-            'chr22:5714337-5760141': 'chr22'}
 
 def parse_args():
     # START_CHAIN_IDX = 25
@@ -68,18 +42,21 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def rdna_paf_to_chain(args):
+
+''' Retrieve CIGAR info from a PAF record '''
+def paf_retrieve_cigar(p: list) -> list:
+    cg_tag = 'cg:Z:'
+    for i in range(MAPQ, len(p)):
+        if p[i].startswith(cg_tag):
+            return p[i][len(cg_tag):]
+
+
+''' Read a PAF file '''
+def read_paf(input_paf) -> list:
     paf = []
-    with open(args.input_paf, 'r') as f:
+    with open(input_paf, 'r') as f:
         for line in f:
             paf.append(line.split('\t'))
-
-    def paf_retrieve_cigar(p):
-        cg_tag = 'cg:Z:'
-        for i in range(MAPQ, len(p)):
-            if p[i].startswith(cg_tag):
-                return p[i][len(cg_tag):]
-
 
     query_trees = {}
     target_trees = {}
@@ -89,7 +66,6 @@ def rdna_paf_to_chain(args):
     paf_final = []
     for p in paf:
         if p[QNAME].split(':')[0] != p[TNAME]:
-        # if rdna_map[p[QNAME]] != p[TNAME]:
             continue
         s = ''
         for i in paf_fields:
@@ -125,14 +101,19 @@ def rdna_paf_to_chain(args):
             target_trees[tname][tstart: tend] = 1
             # target_trees[tname].add((tstart, tend))
 
-        print(s, file=sys.stderr)
+        # print(s.rstrip(), file=sys.stderr)
         if p[STRAND] != '+':
             print(p, file=sys.stderr)
             print('reverse alignments are not yet supported', file=sys.stderr)
             exit(1)
         paf_final.append(p)
+    return paf_final
 
-    # Load rDNA offsets wrt v1.1
+
+def rdna_paf_to_chain(args):
+    paf_final = read_paf(args.input_paf)
+
+    # Load offsets wrt the source reference
     # Positions are 0-based
     rdna_offsets = {}
     rdna_chrlen = {}
@@ -141,7 +122,6 @@ def rdna_paf_to_chain(args):
             if not r.is_supplementary and not r.is_secondary:
                 if r.query_name not in rdna_offsets:
                     if r.query_name.split(':')[0] == r.reference_name:
-                    # if r.reference_name == rdna_map[r.query_name]:
                         rdna_offsets[r.query_name] = r.pos
                         rdna_chrlen[r.reference_name] = f.get_reference_length(r.reference_name)
 
@@ -150,7 +130,6 @@ def rdna_paf_to_chain(args):
     # print('', file=sys.stderr)
 
     # Write to chain
-    print('v1.0 -> v1.1', file=sys.stderr)
     if args.output_chain == '':
         f_out = sys.stdout
     else:
@@ -159,7 +138,6 @@ def rdna_paf_to_chain(args):
     re_cigar = re.compile('[MIDS]+')
     for idx_p, p in enumerate(paf_final):
         qname = p[QNAME]
-        # chr_qname = rdna_map[qname]
         chr_qname = qname.split(':')[0]
         qstart = int(p[QSTART]) + rdna_offsets[qname]
         qend = int(p[QEND]) + rdna_offsets[qname]
@@ -172,8 +150,6 @@ def rdna_paf_to_chain(args):
         cg_ops = re_cigar.findall(cg)
         cg_lens = re_cigar.split(cg)
         match = None
-        dt = None
-        dq = None
         for i_cg, op in enumerate(cg_ops):
             if op == 'M':
                 match = cg_lens[i_cg]
@@ -189,6 +165,7 @@ def rdna_paf_to_chain(args):
                 print('error: unexpected cigar op', op, file=sys.stderr)
                 exit(1)
         print(f'{match}\n', file=f_out)
+
 
 if __name__ == '__main__':
     args = parse_args()
