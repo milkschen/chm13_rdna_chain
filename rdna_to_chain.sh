@@ -41,9 +41,11 @@ wget -nc https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assembli
 python rdna_paf_to_chain.py -p chm13.v1.1.rDNA_flanking.to_v1.0.paf  -a chm13.v1.1.rDNA_flanking.to_v1.1.sam  -o chm13.v1.1.rDNA_flanking.to_v1.0.chain -ic 25
 cp v1.1_to_v1.0.chain v1.1_to_v1.0_rdna.chain
 cat chm13.v1.1.rDNA_flanking.to_v1.0.chain >> v1.1_to_v1.0_rdna.chain
+python merge_colinear_chain.py -c v1.1_to_v1.0_rdna.chain -o v1.1_to_v1.0_rdna.merged.chain
 
 # Build chain from 1.0 to 1.1
 wget -nc https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/changes/v1.0_to_v1.1/v1.0_to_v1.1.chain
 python rdna_paf_to_chain.py -p chm13.v1.0.rDNA_flanking.to_v1.1.paf -a chm13.v1.0.rDNA_flanking.to_v1.0.sam -o chm13.v1.0.rDNA_flanking.to_v1.1.chain -ic 25
 cp v1.0_to_v1.1.chain v1.0_to_v1.1_rdna.chain
 cat chm13.v1.0.rDNA_flanking.to_v1.1.chain >> v1.0_to_v1.1_rdna.chain
+python merge_colinear_chain.py -c v1.0_to_v1.1_rdna.chain -o v1.0_to_v1.1_rdna.merged.chain

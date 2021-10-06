@@ -67,9 +67,7 @@ class Chain(ChainConst):
     def add_record_three(self, fields):
         segment_size = int(fields[self.C_SIZE])
         if segment_size > 0:
-            # print(f'{self.source}:{self.soffset}-{self.soffset+segment_size} ({self.doffset-self.soffset}, {self.ds}, {self.dd})')
             self.tr[self.soffset : self.soffset + segment_size] = (self.doffset-self.soffset, self.ds, self.dd)
-            # self.tr[self.soffset : self.soffset + segment_size] = (self.doffset, self.soffset)
         self.ds = int(fields[self.C_DS])
         self.dd = int(fields[self.C_DD])
         self.soffset += (segment_size + self.ds)
@@ -77,7 +75,6 @@ class Chain(ChainConst):
 
     def add_record_one(self, fields):
         segment_size = int(fields[self.C_SIZE])
-        # print(f'{self.source}:{self.soffset}-{self.soffset+segment_size} ({self.doffset-self.soffset}, {self.ds}, {self.dd})')
         if segment_size > 0:
             self.tr[self.soffset : self.soffset + segment_size] = (self.doffset-self.soffset, self.ds, self.dd)
 
@@ -95,16 +92,43 @@ class Chain(ChainConst):
                 if c_intvl.begin > s_intvl.end or c_intvl.end < s_intvl.begin:
                     continue
                 else:
-                    print()
-                    print(c_intvl)
-                    print(s_intvl)
+                    # If offsets are the same, good to merge
                     if c_intvl.data[0] == s_intvl.data[0]:
-                        clone_tr.remove(s_intvl)
-                        c.tr.remove(c_intvl)
-                        start = min(s_intvl.begin, c_intvl.begin)
-                        end = max(s_intvl.end, c_intvl.end)
-                        #TODO
-                        clone_tr.add(intervaltree.Interval(start, end, s_intvl[2]))
+                        if c_intvl.begin < s_intvl.begin and c_intvl.end < s_intvl.end:
+                            # Extend from beginning
+                            # print(c_intvl)
+                            # print(s_intvl)
+                            start = min(s_intvl.begin, c_intvl.begin)
+                            diff = s_intvl.begin - c_intvl.begin
+                            data = (s_intvl.data[0], s_intvl.data[1]-diff, s_intvl.data[2]-diff)
+                            updated_s_intvl = intervaltree.Interval(start, s_intvl.end, data)
+                            clone_tr.remove(s_intvl)
+                            c.tr.remove(c_intvl)
+                            clone_tr.add(updated_s_intvl)
+                        elif c_intvl.begin > s_intvl.begin and c_intvl.end > s_intvl.end:
+                            # Extend from end
+                            # This operation is trickier b/c the chain diffs are stored in the
+                            # next interval. We need to pop the next interval and update it.
+                            # print(c_intvl)
+                            # print(s_intvl)
+                            clone_tr.remove(s_intvl)
+                            c.tr.remove(c_intvl)
+                            end = max(s_intvl.end, c_intvl.end)
+                            diff = c_intvl.end - s_intvl.end
+                            clone_tr.add(intervaltree.Interval(s_intvl.begin, end, s_intvl[2]))
+                            next_s_intvl = self_sorted_intervals[i_s+1]
+                            next_data = (
+                                next_s_intvl.data[0], next_s_intvl.data[1]-diff,
+                                next_s_intvl.data[2]-diff)
+                            updated_next_s_intvl = intervaltree.Interval(
+                                next_s_intvl.begin, next_s_intvl.end, next_data)
+                            clone_tr.remove(next_s_intvl)
+                            clone_tr.add(updated_next_s_intvl)
+                        elif c_intvl.begin < s_intvl.begina and c_intvl.end > s_intvl.end:
+                            print('During merging, the new interval consumes the existing one',
+                                  file=sys.stderr)
+                            print('This operation is not yet supported', file=sys.stderr)
+                            return False
                     else:
                         return False
         self.tr = clone_tr
