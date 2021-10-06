@@ -4,5 +4,5 @@
 2. Run `rdna_to_chain.sh` to build the chain file, including rDNA flanking regions, from CHM13-v1.0 to CHM13-v1.1 and CHM13-v1.1 to CHM13-v1.0.
 
 Outputs:
-- v1.0_to_v1.1_rdna.chain
-- v1.1_to_v1.0_rdna.chain
+- v1.0_to_v1.1_rdna_merged.chain
+- v1.1_to_v1.0_rdna_merged.chain
